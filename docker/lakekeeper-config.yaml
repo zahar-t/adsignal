@@ -1,0 +1,18 @@
+# Lakekeeper REST catalog configuration
+# This file is for reference; configuration is passed via environment variables in docker-compose.yml
+# See: https://github.com/lakekeeper/lakekeeper
+
+server:
+  listen_port: 8181
+  workers: 4
+
+catalog:
+  warehouse_default: s3://adsignal-warehouse/
+
+storage:
+  s3:
+    endpoint: http://minio:9000
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    path_style_access: true
+    region: us-east-1

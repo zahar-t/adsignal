@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "adsignal"
+version = "0.1.0"
+description = "Competitive ad intelligence platform: Spark + Iceberg + MongoDB + LLM"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+
+dependencies = [
+  # Spark & Iceberg
+  "pyspark==4.1.2",
+  "pyiceberg[s3fs,pyarrow]==0.11.1",
+  "pyarrow>=17.0.0",
+
+  # MongoDB
+  "pymongo==4.17.0",
+  "motor==3.7.0",
+
+  # DS / ML
+  "prophet==1.1.6",
+  "scikit-learn==1.9.0",
+  "pandas>=2.2.0",
+  "numpy>=1.26.0",
+
+  # LLM
+  "ollama==0.4.7",
+  "anthropic>=0.40.0",
+  "openai>=1.55.0",
+
+  # Orchestration
+  "dagster==1.13.7",
+  "dagster-webserver==1.13.7",
+  "dagster-pyspark==0.29.7",
+
+  # API
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.6.0",
+
+  # Dashboard
+  "streamlit>=1.40.0",
+  "plotly>=5.24.0",
+
+  # Utilities
+  "faker>=30.0.0",
+  "httpx>=0.27.0",
+  "tenacity>=9.0.0",
+  "structlog>=24.4.0",
+  "rich>=13.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-mock>=3.14.0",
+  "httpx>=0.27.0",
+  "ruff>=0.8.0",
+  "mypy>=1.13.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["adsignal", "api", "dashboard"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
