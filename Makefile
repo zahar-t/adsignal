@@ -16,7 +16,7 @@ help:
 	@echo ""
 	@echo "Serving:"
 	@echo "  make api          Start FastAPI server (http://localhost:8000)"
-	@echo "  make dashboard    Launch Streamlit dashboard (http://localhost:8501)"
+	@echo "  make dashboard    Launch Reflex dashboard (http://localhost:3000)"
 	@echo ""
 	@echo "Quality:"
 	@echo "  make verify       Run all checks (java, lint, tests)"
@@ -66,7 +66,7 @@ api:
 	uvicorn api.main:app --reload --port 8000
 
 dashboard:
-	streamlit run dashboard/app.py --server.port 8501
+	reflex run
 
 verify: lint typecheck test
 	@bash scripts/check_java.sh
