@@ -37,16 +37,16 @@ jobs:
       LLM_MODEL: llama3.2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Set up Java 17 (required by PySpark 4.x)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: "17"
           distribution: temurin
@@ -66,11 +66,13 @@ jobs:
         run: python scripts/ecc_security_scan.py
 
       - name: Run tests
-        run: pytest tests/ -v --tb=short
+        run: |
+          mkdir -p test-results
+          pytest tests/ -v --tb=short --junitxml=test-results/pytest.xml
 
       - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('test-results/pytest.xml') != ''
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-results
-          path: .pytest_cache/
+          path: test-results/pytest.xml

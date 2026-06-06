@@ -84,8 +84,10 @@ def generate_creative(brand: str, reference_date: date | None = None) -> dict:
 
     impression_lower = random.randint(1_000, 500_000) * 100
     impression_upper = impression_lower + random.randint(50_000, 200_000) * 100
-    spend_lower = round(impression_lower * random.uniform(0.002, 0.008) * spend_scale, 2)
-    spend_upper = round(impression_upper * random.uniform(0.003, 0.010) * spend_scale, 2)
+    lower_cpm = random.uniform(0.002, 0.008)
+    upper_cpm = random.uniform(max(lower_cpm, 0.003), 0.010)
+    spend_lower = round(impression_lower * lower_cpm * spend_scale, 2)
+    spend_upper = round(impression_upper * upper_cpm * spend_scale, 2)
 
     started = reference_date - timedelta(days=random.randint(0, 30))
     is_active = random.random() > 0.3
