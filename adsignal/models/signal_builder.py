@@ -26,6 +26,8 @@ def build_signal_summary(
         SignalSummary dict consumed by llm/narrative.py
     """
     brand_df = signals_df[signals_df["brand"] == brand]
+    if channels is not None:
+        brand_df = brand_df[brand_df["channel"].isin(channels)]
 
     if brand_df.empty:
         return {"brand": brand, "error": "no_data"}
@@ -39,7 +41,7 @@ def build_signal_summary(
         channel_forecasts[ch] = train_and_forecast(brand_df, brand, ch)
 
     # Anomaly detection (brand-level, across all channels)
-    anomaly_result = detect_anomalies(signals_df, brand)
+    anomaly_result = detect_anomalies(signals_df, brand, channels=channels)
 
     # Recent channel mix: last 4 weeks spend by channel
     recent_weeks = sorted(brand_df["week_key"].unique())[-4:]

@@ -1,14 +1,14 @@
-from dagster import AssetIn, MetadataValue, Output, asset
+from dagster import MetadataValue, Output, asset
 
 from adsignal.spark.etl import run_etl
 
 
 @asset(
     group_name="etl",
-    ins={"raw_ad_creatives": AssetIn()},
+    deps=["raw_ad_creatives"],
     description="Run PySpark ETL: MongoDB → raw_creatives Iceberg table → brand_weekly_signals",
 )
-def iceberg_brand_signals(context, raw_ad_creatives: dict) -> Output[dict]:
+def iceberg_brand_signals(context) -> Output[dict]:
     """Run PySpark ETL pipeline."""
     result = run_etl()
 

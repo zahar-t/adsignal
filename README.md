@@ -1,6 +1,6 @@
 # AdSignal — Competitive Ad Intelligence Platform
 
-![CI](https://github.com/zahartate11/adsignal/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/zahar-t/adsignal/actions/workflows/ci.yml/badge.svg)
 
 > Spark · Iceberg · MongoDB · Prophet · Isolation Forest · LLM · Dagster · FastAPI
 
@@ -26,7 +26,7 @@ generating structured analytical prose that a media buyer could act on.
 | LLM | Ollama (local) / Anthropic | Narrative generation over model outputs |
 | Orchestration | Dagster | Full asset lineage |
 | API | FastAPI | REST serving layer |
-| Dashboard | Streamlit | Interactive brand intelligence UI |
+| Dashboard | Reflex | Interactive brand intelligence UI |
 
 ## Architecture
 
@@ -53,7 +53,7 @@ Data Sources (Meta Ad Library / Synthetic)
            (Ollama / Anthropic)
                   ↓
          ┌────────────────┐
-         │  FastAPI REST  │    Streamlit Dashboard
+         │  FastAPI REST  │    Reflex Dashboard
          │  /brief/{brand}│    - Brand selector
          │  /signals/...  │    - Spend trend charts
          │  /snapshots/.. │    - Channel mix donut
@@ -66,7 +66,7 @@ Orchestration: Dagster wraps every layer as @asset with full lineage
 ## Quickstart
 
 ```bash
-git clone https://github.com/zahartate11/adsignal
+git clone https://github.com/zahar-t/adsignal
 cd adsignal
 cp .env.example .env
 
@@ -87,13 +87,13 @@ make etl
 
 # Serve
 make api             # FastAPI at http://localhost:8000/docs
-make dashboard       # Streamlit at http://localhost:8501
+make dashboard       # Reflex at http://localhost:3000
 ```
 
 > **Local LLM:** Install [Ollama](https://ollama.ai), run `ollama pull llama3.2`, then set
 > `LLM_PROVIDER=ollama` in `.env`. No API key required.
 
-> **Anthropic API:** Set `LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=sk-ant-...` in `.env`.
+> **Anthropic API:** Set `LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=your-anthropic-key` in `.env`.
 
 ## Dagster Orchestration
 
@@ -149,7 +149,7 @@ to list snapshots and compare spend posture across historical ETL runs.
   weekly aggregated signals; assembled structured signal summaries as LLM context
 - Implemented a model-agnostic LLM narrative engine (Ollama local / Anthropic API) that generates
   3-sentence competitive intelligence briefs from quantitative model outputs
-- Served intelligence via FastAPI REST endpoints and a Streamlit dashboard with Iceberg snapshot
+- Served intelligence via FastAPI REST endpoints and a Reflex dashboard with Iceberg snapshot
   selector; orchestrated end-to-end with Dagster asset lineage
 
 ## License

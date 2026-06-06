@@ -30,7 +30,7 @@ def main():
     from adsignal.spark.etl import run_etl
     stats = run_etl()
 
-    rprint(f"\n[bold green]✓ ETL Complete[/bold green]")
+    rprint("\n[bold green]✓ ETL Complete[/bold green]")
     rprint(f"  Raw rows written:    {stats['raw_rows']:,}")
     rprint(f"  Signal rows written: {stats['signal_rows']:,}")
 

@@ -21,6 +21,7 @@ from dagster import (
     define_asset_job,
 )
 from pymongo import MongoClient
+from pymongo.synchronous.collection import Collection
 
 from adsignal.config import settings
 
@@ -55,8 +56,9 @@ nightly_schedule = ScheduleDefinition(
 def _get_mongo_doc_count() -> int:
     """Return total document count in raw_creatives collection."""
     try:
-        client = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=3000)
-        count = client[settings.mongo_db]["raw_creatives"].count_documents({})
+        client: MongoClient = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=3000)
+        collection: Collection = client[settings.mongo_db]["raw_creatives"]
+        count = collection.count_documents({})
         client.close()
         return count
     except Exception:

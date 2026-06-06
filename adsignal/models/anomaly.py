@@ -24,6 +24,7 @@ FEATURES = [
 def detect_anomalies(
     signals_df: pd.DataFrame,
     brand: str,
+    channels: list[str] | None = None,
     contamination: float = 0.15,
 ) -> dict:
     """
@@ -32,6 +33,7 @@ def detect_anomalies(
     Args:
         signals_df: DataFrame with columns matching FEATURES + week_key
         brand: brand slug (for logging)
+        channels: optional channel subset to include
         contamination: expected fraction of anomalies
 
     Returns:
@@ -44,6 +46,8 @@ def detect_anomalies(
         }
     """
     brand_df = signals_df[signals_df["brand"] == brand].copy()
+    if channels is not None:
+        brand_df = brand_df[brand_df["channel"].isin(channels)]
 
     # Aggregate across channels per week for brand-level anomaly detection
     weekly = (

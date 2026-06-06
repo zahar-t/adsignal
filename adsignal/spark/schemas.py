@@ -45,7 +45,7 @@ BRAND_WEEKLY_SIGNALS_SCHEMA = StructType([
     StructField("impression_upper_sum", LongType(), True),
     StructField("spend_lower_sum", DoubleType(), True),
     StructField("spend_upper_sum", DoubleType(), True),
-    StructField("spend_midpoint", DoubleType(), True),        # (lower + upper) / 2
+    StructField("spend_midpoint", DoubleType(), True),        # summed midpoint spend
     StructField("top_ctas", ArrayType(StringType()), True),
     StructField("top_themes", ArrayType(StringType()), True),
     StructField("channel_share", DoubleType(), True),         # this channel / total for brand+week

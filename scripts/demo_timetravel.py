@@ -9,13 +9,12 @@ Demonstrates:
 
 Usage: python scripts/demo_timetravel.py [--brand nike]
 """
-import sys
 import argparse
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pandas as pd
 from rich import print as rprint
 from rich.table import Table
 
@@ -42,7 +41,7 @@ def main():
         rprint("[yellow]No snapshots found. Run 'make etl' first.[/yellow]")
         sys.exit(0)
 
-    rprint(f"\n[bold]Iceberg Snapshots for brand_weekly_signals[/bold]")
+    rprint("\n[bold]Iceberg Snapshots for brand_weekly_signals[/bold]")
     rprint(f"Total snapshots: {len(snapshots)}\n")
 
     snap_table = Table(show_header=True)

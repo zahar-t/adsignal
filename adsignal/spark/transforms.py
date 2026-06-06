@@ -43,7 +43,7 @@ def aggregate_weekly_signals(df: DataFrame) -> DataFrame:
             F.sum("impression_upper").alias("impression_upper_sum"),
             F.sum("spend_lower").alias("spend_lower_sum"),
             F.sum("spend_upper").alias("spend_upper_sum"),
-            F.avg("spend_midpoint").alias("spend_midpoint"),
+            F.sum("spend_midpoint").alias("spend_midpoint"),
             F.collect_list("cta").alias("all_ctas"),
             F.flatten(F.collect_list("creative_themes")).alias("all_themes"),
         )
@@ -52,7 +52,7 @@ def aggregate_weekly_signals(df: DataFrame) -> DataFrame:
         .drop("all_ctas", "all_themes")
     )
 
-    # Channel share: this channel's spend_midpoint / total brand+week spend_midpoint
+    # Channel share: this channel's total estimated spend / total brand+week spend.
     brand_week_window = Window.partitionBy("brand", "week_key")
     agg_df = agg_df.withColumn(
         "channel_share",

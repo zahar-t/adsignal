@@ -119,7 +119,7 @@ def _week_key_to_date(week_key: str):
     """Convert '2024-W42' to a Monday date."""
     import datetime
     year, week = week_key.split("-W")
-    return datetime.datetime.strptime(f"{year}-W{week}-1", "%Y-W%W-%w").date()
+    return datetime.datetime.strptime(f"{year}-W{week}-1", "%G-W%V-%u").date()
 
 
 def _linear_fallback(brand: str, channel: str, prophet_df: pd.DataFrame, periods: int) -> dict:

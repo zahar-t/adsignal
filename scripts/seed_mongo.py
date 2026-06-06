@@ -9,11 +9,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adsignal.config import settings
-from adsignal.ingest.synthetic import generate_brand_batch
-from adsignal.ingest.mongo_writer import upsert_creatives
 import structlog
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+
+from adsignal.config import settings
+from adsignal.ingest.mongo_writer import upsert_creatives
+from adsignal.ingest.synthetic import generate_brand_batch
 
 log = structlog.get_logger()
 

@@ -4,6 +4,9 @@ assets/external/
 .web
 *.db
 .env
+.env.*
+!.env.example
+uv.lock
 *.pyc
 __pycache__/
 .venv/

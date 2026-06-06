@@ -1,3 +1,5 @@
+PYTHON ?= python3.11
+
 .PHONY: help install up down bootstrap seed etl api dashboard dagster verify lint typecheck test clean ci-local
 
 help:
@@ -27,8 +29,8 @@ help:
 
 install:
 	@echo "Checking Python version..."
-	python --version
-	pip install -e ".[dev]"
+	$(PYTHON) --version
+	$(PYTHON) -m pip install -e ".[dev]"
 
 up:
 	docker compose -f docker/docker-compose.yml up -d
@@ -44,13 +46,13 @@ down:
 
 bootstrap:
 	bash scripts/check_java.sh
-	python scripts/bootstrap_iceberg.py
+	$(PYTHON) scripts/bootstrap_iceberg.py
 
 seed:
-	python scripts/seed_mongo.py --brands nike adidas apple samsung coca-cola --weeks 16 --ads-per-week 60
+	$(PYTHON) scripts/seed_mongo.py --brands nike adidas apple samsung coca-cola --weeks 16 --ads-per-week 60
 
 etl:
-	python scripts/run_etl.py
+	$(PYTHON) scripts/run_etl.py
 
 dagster:
 	DAGSTER_HOME=.dagster dagster dev -f adsignal/definitions.py

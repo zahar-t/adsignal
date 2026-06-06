@@ -8,6 +8,8 @@ OpenAI:    uses openai SDK
 
 All paths return a plain string (the narrative text).
 """
+from typing import Any, cast
+
 import structlog
 
 from adsignal.config import settings
@@ -54,7 +56,7 @@ def _complete_ollama(prompt: str, system: str | None) -> str:
     try:
         response = client.chat.completions.create(
             model=settings.llm_model,
-            messages=messages,
+            messages=cast(Any, messages),
             max_tokens=512,
             temperature=0.3,  # lower temp for analytical prose
         )
@@ -73,7 +75,7 @@ def _complete_anthropic(prompt: str, system: str | None) -> str:
 
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "model": settings.llm_model or "claude-sonnet-4-20250514",
         "max_tokens": 512,
         "messages": [{"role": "user", "content": prompt}],
@@ -105,7 +107,7 @@ def _complete_openai(prompt: str, system: str | None) -> str:
     try:
         response = client.chat.completions.create(
             model=settings.llm_model or "gpt-4o-mini",
-            messages=messages,
+            messages=cast(Any, messages),
             max_tokens=512,
             temperature=0.3,
         )

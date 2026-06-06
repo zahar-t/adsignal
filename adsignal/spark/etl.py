@@ -60,6 +60,8 @@ def run_etl(spark: SparkSession | None = None) -> dict:
     for field in RAW_CREATIVES_SCHEMA.fields:
         if field.name not in pdf.columns:
             pdf[field.name] = None
+    pdf = pdf[[field.name for field in RAW_CREATIVES_SCHEMA.fields]]
+    pdf = pdf.astype(object).where(pd.notna(pdf), None)
 
     df_raw: DataFrame = spark.createDataFrame(pdf, schema=RAW_CREATIVES_SCHEMA)
     df_raw = clean_nulls(cast_date_columns(add_spend_midpoint(df_raw)))

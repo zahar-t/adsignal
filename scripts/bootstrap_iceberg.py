@@ -7,16 +7,25 @@ Usage: python scripts/bootstrap_iceberg.py
 """
 import sys
 from pathlib import Path
+
+import httpx
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pyiceberg.catalog import load_catalog
+from pyiceberg.partitioning import PartitionField, PartitionSpec
 from pyiceberg.schema import Schema
-from pyiceberg.types import (
-    NestedField, StringType, LongType, DoubleType,
-    BooleanType, TimestampType, ListType, IntegerType
-)
-from pyiceberg.partitioning import PartitionSpec, PartitionField
 from pyiceberg.transforms import IdentityTransform
+from pyiceberg.types import (
+    DoubleType,
+    IntegerType,
+    ListType,
+    LongType,
+    NestedField,
+    StringType,
+    TimestampType,
+)
+
 from adsignal.config import settings
 
 CATALOG_CONFIG = {
@@ -32,7 +41,63 @@ CATALOG_CONFIG = {
 NAMESPACE = ("ad_intelligence",)
 
 
+def _management_url(path: str) -> str:
+    base_url = settings.iceberg_rest_uri.removesuffix("/catalog").rstrip("/")
+    return f"{base_url}/management/v1/{path.lstrip('/')}"
+
+
+def _ensure_lakekeeper_warehouse() -> None:
+    """Initialize Lakekeeper management state and create the configured warehouse."""
+    with httpx.Client(timeout=30) as client:
+        bootstrap_response = client.post(
+            _management_url("bootstrap"),
+            json={
+                "accept-terms-of-use": True,
+                "is-operator": True,
+                "user-name": "adsignal-local",
+                "user-type": "application",
+            },
+        )
+        already_bootstrapped = (
+            bootstrap_response.status_code == 400
+            and bootstrap_response.json().get("error", {}).get("type")
+            == "CatalogAlreadyBootstrapped"
+        )
+        if bootstrap_response.status_code not in {204, 409} and not already_bootstrapped:
+            bootstrap_response.raise_for_status()
+
+        warehouses_response = client.get(_management_url("warehouse"))
+        warehouses_response.raise_for_status()
+        warehouses = warehouses_response.json().get("warehouses", [])
+        if any(warehouse.get("name") == settings.iceberg_warehouse for warehouse in warehouses):
+            return
+
+        warehouse_response = client.post(
+            _management_url("warehouse"),
+            json={
+                "warehouse-name": settings.iceberg_warehouse,
+                "storage-profile": {
+                    "type": "s3",
+                    "bucket": settings.iceberg_warehouse.removeprefix("s3://").strip("/"),
+                    "region": "us-east-1",
+                    "endpoint": settings.iceberg_s3_endpoint,
+                    "path-style-access": True,
+                    "sts-enabled": False,
+                },
+                "storage-credential": {
+                    "type": "s3",
+                    "credential-type": "access-key",
+                    "access-key-id": settings.iceberg_s3_access_key,
+                    "secret-access-key": settings.iceberg_s3_secret_key,
+                },
+            },
+        )
+        if warehouse_response.status_code not in {201, 409}:
+            warehouse_response.raise_for_status()
+
+
 def main():
+    _ensure_lakekeeper_warehouse()
     catalog = load_catalog("adsignal", **CATALOG_CONFIG)
 
     # Create namespace

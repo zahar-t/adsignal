@@ -171,7 +171,7 @@ class State(rx.State):
         yield
         try:
             df = _signals()
-            summary = build_signal_summary(df, self.selected_brand)
+            summary = build_signal_summary(df, self.selected_brand, self.selected_channels)
             self.brief = generate_brief(self.selected_brand, summary)
         except Exception as exc:
             self.brief = f"Brief generation failed: {exc}"
@@ -183,6 +183,18 @@ class State(rx.State):
             & (df["channel"].isin(self.selected_channels))
         ]
         if bdf.empty:
+            self.kpi_spend = "$0"
+            self.kpi_ads = "0"
+            self.kpi_weeks = "0"
+            self.kpi_channels = "0"
+            self.spend_delta = ""
+            self.ads_delta = ""
+            self.trend_fig = Figure()
+            self.donut_fig = Figure()
+            self.has_anomalies = False
+            self.anomaly_summary = ""
+            self.recent_anomalies = []
+            self.anomaly_error = ""
             return
 
         # KPI totals
@@ -201,14 +213,14 @@ class State(rx.State):
             if prev_spend > 0:
                 pct = ((curr_spend - prev_spend) / prev_spend) * 100
                 self.spend_delta = f"+{pct:.1f}%" if pct >= 0 else f"{pct:.1f}%"
-                self.spend_delta_up = pct >= 0
+                self.spend_delta_up = bool(pct >= 0)
 
             curr_ads = int(bdf[bdf["week_key"] == weeks[-1]]["ad_count"].sum())
             prev_ads = int(bdf[bdf["week_key"] == weeks[-2]]["ad_count"].sum())
             if prev_ads > 0:
                 pct_ads = ((curr_ads - prev_ads) / prev_ads) * 100
                 self.ads_delta = f"+{pct_ads:.1f}%" if pct_ads >= 0 else f"{pct_ads:.1f}%"
-                self.ads_delta_up = pct_ads >= 0
+                self.ads_delta_up = bool(pct_ads >= 0)
 
         # Trend chart — smooth spline with transparent fill
         weekly = (
@@ -283,7 +295,7 @@ class State(rx.State):
 
         # Anomalies
         try:
-            summary = build_signal_summary(df, self.selected_brand)
+            summary = build_signal_summary(df, self.selected_brand, self.selected_channels)
             all_anomalies = [str(w) for w in summary.get("anomaly_weeks", [])]
             self.has_anomalies = len(all_anomalies) > 0
             self.anomaly_summary = f"{len(all_anomalies)} anomalous week(s) detected"

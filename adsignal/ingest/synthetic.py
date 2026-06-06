@@ -30,10 +30,16 @@ Schema per document:
 import random
 import uuid
 from datetime import UTC, date, datetime, timedelta
+from typing import TypedDict
 
 from faker import Faker
 
 fake = Faker()
+
+
+class BrandConfig(TypedDict):
+    display: str
+    spend_scale: float
 
 CHANNELS = ["display", "video", "search", "ctv", "social"]
 PLATFORMS = {
@@ -50,7 +56,7 @@ THEMES = [
 ]
 REGIONS = ["US", "GB", "DE", "FR", "AU", "CA", "NL", "ES"]
 
-BRAND_CONFIG = {
+BRAND_CONFIG: dict[str, BrandConfig] = {
     "nike": {"display": "Nike", "spend_scale": 5.0},
     "adidas": {"display": "Adidas", "spend_scale": 3.5},
     "apple": {"display": "Apple", "spend_scale": 8.0},

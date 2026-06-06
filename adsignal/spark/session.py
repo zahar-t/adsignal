@@ -1,9 +1,6 @@
 """
 SparkSession factory with full Iceberg + S3/MinIO catalog configuration.
 
-GOTCHA: PySpark 4.x ships with its own bundled Iceberg runtime.
-Do NOT add iceberg JARs manually — use the built-in Iceberg support via
-spark.sql.extensions and spark.sql.catalog.* config.
 GOTCHA: s3a:// is the Hadoop S3A connector. When using MinIO locally,
 set fs.s3a.endpoint to the MinIO URL and fs.s3a.path.style.access=true.
 """
@@ -17,6 +14,14 @@ def get_spark_session(app_name: str | None = None) -> SparkSession:
         SparkSession.builder
         .master(settings.spark_master)
         .appName(app_name or settings.spark_app_name)
+        # Iceberg runtime jars for Spark 4.x and S3-compatible storage.
+        .config(
+            "spark.jars.packages",
+            ",".join([
+                "org.apache.iceberg:iceberg-spark-runtime-4.0_2.13:1.10.1",
+                "org.apache.iceberg:iceberg-aws-bundle:1.10.1",
+            ]),
+        )
         # Iceberg extensions
         .config(
             "spark.sql.extensions",
