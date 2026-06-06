@@ -62,6 +62,9 @@ jobs:
       - name: Type check (mypy)
         run: mypy adsignal/ api/ --ignore-missing-imports
 
+      - name: Security gate (ECC unicode-safety scan)
+        run: python scripts/ecc_security_scan.py
+
       - name: Run tests
         run: pytest tests/ -v --tb=short
 

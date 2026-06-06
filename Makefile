@@ -1,6 +1,6 @@
 PYTHON ?= python3.11
 
-.PHONY: help install up down bootstrap seed etl api dashboard dagster verify lint typecheck test clean ci-local
+.PHONY: help install up down bootstrap seed etl api dashboard dagster verify lint typecheck test security clean ci-local
 
 help:
 	@echo "AdSignal — Competitive Ad Intelligence Platform"
@@ -25,6 +25,7 @@ help:
 	@echo "  make lint         Run ruff linter"
 	@echo "  make typecheck    Run mypy"
 	@echo "  make test         Run pytest"
+	@echo "  make security     Run ECC unicode-safety scan (agentic security gate)"
 	@echo "  make ci-local     Mirror GitHub Actions CI checks locally"
 
 install:
@@ -61,6 +62,7 @@ ci-local:
 	@echo "Running CI checks locally (mirrors GitHub Actions)..."
 	ruff check adsignal/ api/ dashboard/ tests/
 	mypy adsignal/ api/ --ignore-missing-imports
+	$(PYTHON) scripts/ecc_security_scan.py
 	pytest tests/ -v --tb=short
 	@echo "✓ All CI checks passed"
 
@@ -70,7 +72,10 @@ api:
 dashboard:
 	reflex run
 
-verify: lint typecheck test
+security:
+	$(PYTHON) scripts/ecc_security_scan.py
+
+verify: lint typecheck test security
 	@bash scripts/check_java.sh
 	@echo "✓ All checks passed"
 

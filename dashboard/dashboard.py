@@ -9,10 +9,9 @@ from pyiceberg.catalog import load_catalog
 from adsignal.config import settings
 from adsignal.llm.narrative import generate_brief
 from adsignal.models.signal_builder import build_signal_summary
+from dashboard.charts import PALETTE, build_donut_figure, build_trend_figure
 
 # ── Custom Plotly template ────────────────────────────────────────────────────
-
-PALETTE = ["#6366f1", "#f59e0b", "#10b981", "#f43f5e", "#3b82f6", "#8b5cf6"]
 
 pio.templates["adsignal"] = go.layout.Template(
     layout=go.Layout(
@@ -58,11 +57,16 @@ pio.templates.default = "adsignal"
 
 _catalog = None
 _df: pd.DataFrame | None = None
+_using_sample = False
 
 
 def _get_catalog():
     global _catalog
     if _catalog is None:
+        from adsignal.lakehouse_dns import patch_python_dns
+
+        # Resolve the Lakekeeper-vended MinIO hostname from this host process.
+        patch_python_dns()
         _catalog = load_catalog(
             "adsignal",
             **{
@@ -78,11 +82,32 @@ def _get_catalog():
     return _catalog
 
 
+def is_using_sample() -> bool:
+    """Whether the dashboard is currently serving the offline sample dataset."""
+    return _using_sample
+
+
 def _signals() -> pd.DataFrame:
-    global _df
+    """Load brand_weekly_signals from Iceberg, falling back to sample data.
+
+    The live table is only populated after the full pipeline runs (and the Spark
+    ETL needs Java 17). When the table is empty or unreachable we serve a
+    deterministic sample so the charts are demonstrable instead of blank — the UI
+    flags this with a banner. See dashboard/sample_data.py.
+    """
+    global _df, _using_sample
     if _df is None:
-        tbl = _get_catalog().load_table("ad_intelligence.brand_weekly_signals")
-        _df = tbl.scan().to_pandas()
+        try:
+            tbl = _get_catalog().load_table("ad_intelligence.brand_weekly_signals")
+            df = tbl.scan().to_pandas()
+        except Exception:
+            df = pd.DataFrame()
+        if df.empty:
+            from dashboard.sample_data import build_sample_signals
+
+            df = build_sample_signals()
+            _using_sample = True
+        _df = df
     return _df
 
 
@@ -133,11 +158,13 @@ class State(rx.State):
 
     load_error: str = ""
     llm_info: str = ""
+    using_sample: bool = False
 
     @rx.event
     async def on_load(self):
         try:
             df = _signals()
+            self.using_sample = is_using_sample()
             self.brands = sorted(df["brand"].unique().tolist())
             self.channels = sorted(df["channel"].unique().tolist())
             self.selected_channels = list(self.channels)
@@ -145,7 +172,11 @@ class State(rx.State):
             if self.brands:
                 self.selected_brand = self.brands[0]
                 self._refresh(df)
-            snaps = _get_snapshots()
+            try:
+                snaps = _get_snapshots()
+            except Exception:
+                # Sample/offline mode has no live Iceberg snapshots — not fatal.
+                snaps = []
             self.snapshots = snaps
             self.has_snapshots = len(snaps) > 0
         except Exception as exc:
@@ -222,76 +253,9 @@ class State(rx.State):
                 self.ads_delta = f"+{pct_ads:.1f}%" if pct_ads >= 0 else f"{pct_ads:.1f}%"
                 self.ads_delta_up = bool(pct_ads >= 0)
 
-        # Trend chart — smooth spline with transparent fill
-        weekly = (
-            bdf.groupby(["week_key", "channel"])["spend_midpoint"]
-            .sum()
-            .reset_index()
-            .sort_values("week_key")
-        )
-        fig_trend = go.Figure()
-        for i, ch in enumerate(sorted(weekly["channel"].unique())):
-            ch_data = weekly[weekly["channel"] == ch].sort_values("week_key")
-            color = PALETTE[i % len(PALETTE)]
-            fig_trend.add_trace(
-                go.Scatter(
-                    x=ch_data["week_key"].tolist(),
-                    y=ch_data["spend_midpoint"].tolist(),
-                    name=ch,
-                    mode="lines",
-                    line=dict(width=2.5, color=color, shape="spline"),
-                    fill="tozeroy",
-                    fillcolor=color + "18",
-                    hovertemplate=f"<b>{ch}</b><br>%{{x}}<br>${{y:,.0f}}<extra></extra>",
-                )
-            )
-        fig_trend.update_layout(height=280, hovermode="x unified", showlegend=True)
-        self.trend_fig = fig_trend
-
-        # Donut chart with center annotation
-        recent_wks = sorted(bdf["week_key"].unique())[-4:]
-        ch_totals = (
-            bdf[bdf["week_key"].isin(recent_wks)]
-            .groupby("channel")["spend_midpoint"]
-            .sum()
-            .reset_index()
-        )
-        total_recent = ch_totals["spend_midpoint"].sum()
-        fig_donut = go.Figure(
-            go.Pie(
-                labels=ch_totals["channel"].tolist(),
-                values=ch_totals["spend_midpoint"].tolist(),
-                hole=0.65,
-                marker=dict(
-                    colors=PALETTE[: len(ch_totals)],
-                    line=dict(color="white", width=2),
-                ),
-                textinfo="percent",
-                textfont=dict(size=11),
-                hovertemplate="<b>%{label}</b><br>$%{value:,.0f} (%{percent})<extra></extra>",
-            )
-        )
-        fig_donut.add_annotation(
-            text=f"${total_recent / 1_000:.0f}K",
-            x=0.5,
-            y=0.58,
-            font=dict(size=20, color="#0f172a", family="Inter"),
-            showarrow=False,
-        )
-        fig_donut.add_annotation(
-            text="4-wk spend",
-            x=0.5,
-            y=0.42,
-            font=dict(size=11, color="#64748b", family="Inter"),
-            showarrow=False,
-        )
-        fig_donut.update_layout(
-            height=260,
-            showlegend=True,
-            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02),
-            margin=dict(l=0, r=90, t=10, b=10),
-        )
-        self.donut_fig = fig_donut
+        # Trend + donut charts (pure builders, unit-tested)
+        self.trend_fig = build_trend_figure(bdf)
+        self.donut_fig = build_donut_figure(bdf)
 
         # Anomalies
         try:
@@ -780,6 +744,25 @@ def main_content() -> rx.Component:
                     "Real-time ad spend analysis powered by Iceberg + LLM",
                     size="3",
                     color="#64748b",
+                ),
+                rx.cond(
+                    State.using_sample,
+                    rx.hstack(
+                        rx.icon(tag="flask-conical", size=13, color="#92400e"),
+                        rx.text(
+                            "Showing sample data — run `make up && make bootstrap && "
+                            "make seed && make etl` to load the live lakehouse.",
+                            size="1",
+                            color="#92400e",
+                        ),
+                        background="#fffbeb",
+                        border="1px solid #fde68a",
+                        border_radius="8px",
+                        padding="2",
+                        spacing="2",
+                        align="center",
+                    ),
+                    rx.box(),
                 ),
                 spacing="1",
                 align="start",

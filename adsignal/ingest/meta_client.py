@@ -102,12 +102,18 @@ def _normalise_meta_ad(ad: dict, brand: str) -> dict:
     }
     channel = channel_map.get(platforms[0] if platforms else "facebook", "social")
 
+    # Ad copy is untrusted external text that later flows into the LLM narrative
+    # engine. Strip invisible-Unicode / ASCII-smuggling payloads at ingest so
+    # hidden prompt-injection instructions never reach the model (ECC integration —
+    # see adsignal/security.py and ECC_USAGE.md).
+    from adsignal.security import sanitize_external_text
+
     return {
         "source_id": ad.get("id", ""),
         "source": "meta",
         "brand": brand.lower().replace(" ", "-"),
         "brand_display": brand.title(),
-        "ad_text": ad.get("ad_creative_body", ""),
+        "ad_text": sanitize_external_text(ad.get("ad_creative_body", "")),
         "cta": "Learn More",
         "channel": channel,
         "platform": platforms[0] if platforms else "facebook",

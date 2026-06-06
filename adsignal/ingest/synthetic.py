@@ -119,11 +119,22 @@ def generate_creative(brand: str, reference_date: date | None = None) -> dict:
 
 
 def generate_brand_batch(brand: str, n_weeks: int = 16, ads_per_week: int = 50) -> list[dict]:
-    """Generate a full batch for a brand across n_weeks of history."""
+    """Generate a full batch for a brand across n_weeks of history.
+
+    The per-week count jitters around ``ads_per_week`` so the data looks organic.
+    The jitter scales with ``ads_per_week`` (±20%, at least ±1) rather than using a
+    fixed ±10: a fixed swing of 10 swamped small batches (e.g. ads_per_week=10 could
+    drop a week to 0 ads), occasionally pushing the total well below the expected
+    ``n_weeks * ads_per_week`` and causing the flaky ``test_generate_batch_count``
+    failure (16 docs when ~40 were expected). Proportional jitter keeps every batch
+    comfortably within bounds for any ``ads_per_week``.
+    """
     docs = []
     today = date.today()
+    jitter = max(1, round(ads_per_week * 0.2))
     for week_offset in range(n_weeks):
         reference = today - timedelta(weeks=week_offset)
-        for _ in range(ads_per_week + random.randint(-10, 10)):
+        weekly_count = max(1, ads_per_week + random.randint(-jitter, jitter))
+        for _ in range(weekly_count):
             docs.append(generate_creative(brand, reference))
     return docs

@@ -21,8 +21,27 @@ def test_generate_creative_brand_slug():
 
 def test_generate_batch_count():
     docs = generate_brand_batch("adidas", n_weeks=4, ads_per_week=10)
-    # Should be approx 4 * 10 docs (±10 per week jitter)
+    # Should be approx 4 * 10 docs (proportional ±20% per-week jitter)
     assert 20 <= len(docs) <= 80
+
+
+def test_generate_batch_count_is_robust():
+    """Regression: a fixed ±10 jitter could drop small batches below 20 (flaky CI).
+
+    Proportional jitter must keep every batch comfortably in range across many runs.
+    """
+    for _ in range(300):
+        docs = generate_brand_batch("adidas", n_weeks=4, ads_per_week=10)
+        assert 20 <= len(docs) <= 80, f"out of range: {len(docs)}"
+
+
+def test_generate_batch_scales_with_params():
+    """Larger ads_per_week / n_weeks produce proportionally larger batches."""
+    small = generate_brand_batch("nike", n_weeks=4, ads_per_week=10)
+    big = generate_brand_batch("nike", n_weeks=8, ads_per_week=50)
+    assert len(big) > len(small)
+    # 8 weeks * ~50/week, ±20% → comfortably in [320, 480]
+    assert 300 <= len(big) <= 500
 
 
 def test_week_key_format():

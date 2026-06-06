@@ -37,6 +37,13 @@ def build_brief_prompt(brand: str, signal_summary: dict) -> str:
     n_weeks = signal_summary.get("weeks_analysed", 0)
     dominant_trend = signal_summary.get("dominant_trend", "flat")
 
+    # Defense in depth: themes originate from external ad metadata. Even though
+    # ingest already sanitizes, strip any invisible-Unicode smuggling here too so
+    # nothing hidden reaches the model in the assembled prompt (ECC integration).
+    from adsignal.security import sanitize_external_text
+
+    themes_str = sanitize_external_text(themes_str)
+
     prompt = f"""Analyse the following competitive ad intelligence signals for {brand.upper()} and write a 3-sentence analyst brief.
 
 SIGNAL DATA ({n_weeks} weeks of observations):

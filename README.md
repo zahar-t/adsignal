@@ -82,13 +82,21 @@ make bootstrap       # creates ad_intelligence namespace + brand_weekly_signals 
 # Populate with synthetic data
 make seed            # ~20k docs across 5 brands, 16 weeks of history
 
-# Run PySpark ETL (Java 17 required)
+# Run the ETL (auto-selects PySpark if Java 17+ is present, else a Spark-free
+# pandas/PyIceberg engine — so it works even without a JVM)
 make etl
+# force a specific engine:
+#   python scripts/run_etl.py --engine spark    # needs Java 17+
+#   python scripts/run_etl.py --engine pandas   # no JVM required
 
 # Serve
 make api             # FastAPI at http://localhost:8000/docs
 make dashboard       # Reflex at http://localhost:3000
 ```
+
+> **No lakehouse yet?** The dashboard renders a clearly-labelled **sample
+> dataset** when the Iceberg table is empty or unreachable, so charts are
+> demonstrable before you run the full pipeline.
 
 > **Local LLM:** Install [Ollama](https://ollama.ai), run `ollama pull llama3.2`, then set
 > `LLM_PROVIDER=ollama` in `.env`. No API key required.
@@ -135,12 +143,35 @@ python scripts/demo_timetravel.py --brand nike
 Each ETL run creates a new Iceberg snapshot. Use `GET /snapshots/brand_weekly_signals`
 to list snapshots and compare spend posture across historical ETL runs.
 
+## Security (ECC integration)
+
+AdSignal ingests untrusted external ad copy and forwards it to an LLM — a
+"lethal trifecta" surface. It integrates the [ECC operator system](https://github.com/affaan-m/ecc)'s
+unicode-safety scanner to defend against invisible-Unicode / ASCII-smuggling
+prompt injection: external text is sanitized at ingest and before prompt
+assembly, and a CI gate (`make security`) blocks dangerous code points from the
+repo. See [ECC_USAGE.md](ECC_USAGE.md).
+
 ## Requirements
 
 - Python 3.11+
-- Java 17+ (for PySpark 4.x) — `winget install Microsoft.OpenJDK.17`
+- Java 17+ — for the **PySpark** ETL engine. `make etl` auto-discovers a JDK 17+
+  (incl. a keg-only Homebrew `openjdk@17`) and sets `JAVA_HOME` itself, so no
+  manual export is needed. If no JDK 17+ is found it falls back to the Spark-free
+  pandas/PyIceberg engine.
 - Docker Desktop (for MongoDB, MinIO, Lakekeeper)
 - Ollama (optional, for local LLM) — [ollama.ai](https://ollama.ai)
+
+### Local stack networking
+
+Lakekeeper runs inside Docker and vends MinIO's docker-internal hostname
+(`minio:9000`) to clients. Host processes (Spark, dashboard, API) can't resolve
+that name, so AdSignal includes a per-process DNS shim
+([`adsignal/lakehouse_dns.py`](adsignal/lakehouse_dns.py)) that maps the
+internal host to the published MinIO port — for both the Spark JVM
+(`-Djdk.net.hosts.file`) and Python clients (`socket` resolver). No `/etc/hosts`
+edit or warehouse reconfiguration is required. Set `ICEBERG_S3_INTERNAL_HOST=`
+(empty) to disable it.
 
 ## CV Bullets
 

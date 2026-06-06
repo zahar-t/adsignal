@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     iceberg_s3_endpoint: str = "http://localhost:9000"
     iceberg_s3_access_key: str = "minioadmin"
     iceberg_s3_secret_key: str = "minioadmin"
+    # Lakekeeper runs inside Docker and vends the MinIO endpoint by its
+    # docker-internal hostname (the compose service name). Host processes can't
+    # resolve that name, so the lakehouse DNS shim maps it to the published port.
+    # Set empty to disable the shim. See adsignal/lakehouse_dns.py.
+    iceberg_s3_internal_host: str = "minio"
 
     # Spark
     spark_master: str = "local[*]"

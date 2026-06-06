@@ -52,11 +52,13 @@ def main():
 
     for snap in sorted(snapshots, key=lambda s: s.snapshot_id):
         summary = snap.summary or {}
+        # rich needs strings — `operation` is an Operation enum and `added-records`
+        # is an int, so coerce both before adding the row.
         snap_table.add_row(
             str(snap.snapshot_id),
             str(snap.timestamp_ms),
-            summary.get("operation", "unknown"),
-            summary.get("added-records", "—"),
+            str(summary.get("operation", "unknown")),
+            str(summary.get("added-records", "—")),
         )
     rprint(snap_table)
 

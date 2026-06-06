@@ -7,11 +7,37 @@ set fs.s3a.endpoint to the MinIO URL and fs.s3a.path.style.access=true.
 from pyspark.sql import SparkSession
 
 from adsignal.config import settings
+from adsignal.spark.java import MIN_JAVA_MAJOR, ensure_java
 
 
 def get_spark_session(app_name: str | None = None) -> SparkSession:
+    # PySpark 4.x needs Java 17+. Point the JVM at a suitable JDK (e.g. a
+    # keg-only Homebrew openjdk@17) so the session starts without the user
+    # having to export JAVA_HOME by hand.
+    if ensure_java(MIN_JAVA_MAJOR) is None:
+        raise RuntimeError(
+            f"PySpark requires Java {MIN_JAVA_MAJOR}+ but none was found. Install it "
+            "(macOS: `brew install openjdk@17`) or run the ETL with --engine pandas."
+        )
+
+    # Lakekeeper vends MinIO's docker-internal hostname (e.g. "minio") to the
+    # Spark JVM. When that name doesn't resolve on this host, point the JVM at a
+    # custom hosts file so its S3 writes reach the published MinIO port. The file
+    # replaces all JVM resolution, so bind the driver to loopback to avoid relying
+    # on the machine hostname.
+    from adsignal.lakehouse_dns import jvm_hosts_file
+
+    driver_java_opts = "-Dlog4j.logLevel=WARN"
+    builder = SparkSession.builder
+    hosts_file = jvm_hosts_file()
+    if hosts_file:
+        driver_java_opts = f"{driver_java_opts} -Djdk.net.hosts.file={hosts_file}"
+        builder = builder.config("spark.driver.host", "127.0.0.1").config(
+            "spark.driver.bindAddress", "127.0.0.1"
+        )
+
     return (
-        SparkSession.builder
+        builder
         .master(settings.spark_master)
         .appName(app_name or settings.spark_app_name)
         # Iceberg runtime jars for Spark 4.x and S3-compatible storage.
@@ -46,7 +72,8 @@ def get_spark_session(app_name: str | None = None) -> SparkSession:
         # Performance
         .config("spark.sql.shuffle.partitions", "8")
         .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        # Silence verbose logging
-        .config("spark.driver.extraJavaOptions", "-Dlog4j.logLevel=WARN")
+        # Silence verbose logging (+ optional JVM hosts file for MinIO resolution)
+        .config("spark.driver.extraJavaOptions", driver_java_opts)
+        .config("spark.executor.extraJavaOptions", driver_java_opts)
         .getOrCreate()
     )

@@ -2,10 +2,13 @@
 from pyiceberg.catalog import load_catalog
 
 from adsignal.config import settings
+from adsignal.lakehouse_dns import patch_python_dns
 
 
 def get_catalog_reader():
     """Return a PyIceberg catalog connected to Lakekeeper."""
+    # Ensure the Lakekeeper-vended MinIO hostname resolves from this host process.
+    patch_python_dns()
     return load_catalog(
         "adsignal",
         **{
