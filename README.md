@@ -173,19 +173,6 @@ internal host to the published MinIO port — for both the Spark JVM
 edit or warehouse reconfiguration is required. Set `ICEBERG_S3_INTERNAL_HOST=`
 (empty) to disable it.
 
-## CV Bullets
-
-- Built a media intelligence lakehouse ingesting ad creative metadata from the Meta Ad Library API
-  (synthetic fallback via Faker) into MongoDB, processed at scale with PySpark 4.x, and persisted
-  to Apache Iceberg via a Lakekeeper REST catalog on MinIO object storage
-- Engineered PySpark ETL with partitioned Iceberg writes (brand + week_key), enabling time-travel
-  queries to compare brand spend posture across arbitrary historical windows
-- Trained per-brand Prophet spend forecasting models and Isolation Forest anomaly detectors on
-  weekly aggregated signals; assembled structured signal summaries as LLM context
-- Implemented a model-agnostic LLM narrative engine (Ollama local / Anthropic API) that generates
-  3-sentence competitive intelligence briefs from quantitative model outputs
-- Served intelligence via FastAPI REST endpoints and a Reflex dashboard with Iceberg snapshot
-  selector; orchestrated end-to-end with Dagster asset lineage
 
 ## License
 
