@@ -93,6 +93,10 @@ make dashboard       # Reflex at http://localhost:3000
 > **Local LLM:** Install [Ollama](https://ollama.ai), run `ollama pull llama3.2`, then set
 > `LLM_PROVIDER=ollama` in `.env`. No API key required.
 
+> **LM Studio:** Load a local model in LM Studio, start the local server, then set
+> `LLM_PROVIDER=lmstudio`, `LMSTUDIO_BASE_URL=http://localhost:1234/v1`, and `LLM_MODEL`
+> to the loaded model id.
+
 > **Anthropic API:** Set `LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=your-anthropic-key` in `.env`.
 
 ## Dagster Orchestration

@@ -21,9 +21,13 @@ class Settings(BaseSettings):
     spark_app_name: str = "adsignal-etl"
 
     # LLM — model-agnostic
-    llm_provider: str = Field(default="ollama", description="ollama | anthropic | openai")
+    llm_provider: str = Field(
+        default="ollama",
+        description="ollama | lmstudio | anthropic | openai",
+    )
     llm_model: str = Field(default="llama3.2", description="model name for the chosen provider")
     ollama_base_url: str = "http://localhost:11434"
+    lmstudio_base_url: str = "http://localhost:1234/v1"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
 
